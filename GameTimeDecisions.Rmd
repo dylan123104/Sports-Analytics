@@ -1,0 +1,109 @@
+---
+title: "GameTimeDecisions"
+output: html_document
+---
+
+# **Loading in Packages**
+```{r}
+library(tidyverse)
+library(xgboost)
+library(dplyr)
+library(nflreadr)
+library(nflfastR)
+library(ggplot2)
+```
+
+# **Obtaining the Data**
+```{r}
+pbp = load_pbp(seasons = 2019:2024)
+```
+
+```{r}
+pbp_selected = pbp %>% select("play_id", "game_id", "home_team", "away_team",
+                                   "season_type", "week", "posteam", "posteam_type",
+                                   "defteam", "side_of_field", "yardline_100",
+                                   "game_date", "quarter_seconds_remaining",
+                                   "half_seconds_remaining", "game_seconds_remaining",
+                              "qtr", "down", "time", "goal_to_go", "yrdln", "ydstogo",
+                              "ydsnet", "play_type", "yards_gained", "score_differential", "fourth_down_converted", "fourth_down_failed", "timeout_team", "penalty", "penalty_team", "penalty_type", "weather", "wind", "stadium_id"
+                              )
+```
+
+```{r}
+pbp_fourth = pbp_selected %>% filter(down == 4)
+pbp_fourth$game_date = pbp_fourth$game_date %>% as.Date()
+pbp_fourth$year = format(pbp_fourth$game_date, "%Y")
+```
+
+
+# **Exploratory Data Analysis**
+```{r}
+pbp_fourth =pbp_fourth %>% mutate(play_type2 = case_when(
+  play_type == "punt" ~ "punt",
+  play_type == "no_play" ~ "no_play",
+  play_type == "field_goal" ~ "field_goal",
+  play_type == "NA" ~ "NA",
+  play_type == "qb_kneel" ~ "qb_kneel",
+  play_type == "run" ~ "went for it",
+  play_type == "pass" ~ "went for it"
+))
+
+play_type_fourth = pbp_fourth %>% group_by(play_type2) %>% count() %>% arrange(desc(n))
+
+play_type_fourth %>% ggplot(aes(x = reorder(play_type2, n, desc), y = n)) +
+  geom_col()
+
+pbp_fourth = pbp_fourth %>% mutate(went_for_it = case_when(
+  play_type2 == "went for it" ~ 1,
+  TRUE ~ 0
+))
+
+pbp_fourth %>%group_by(year) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts)
+# Increase in 2025 so far, could be because of rule change for touchbacks. 
+```
+
+## What teams are the most aggressive in going for it
+```{r}
+pbp_fourth %>% group_by(posteam) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts) %>% arrange(desc(rate))
+
+pbp_fourth %>% group_by(year, posteam) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts) %>% arrange(desc(rate)) %>% filter(year != 2025)
+
+pbp_fourth %>% group_by(year, posteam) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts) %>% arrange(desc(rate)) %>% filter(year == 2025)
+```
+
+## What teams are the most successful in going for it
+```{r}
+pbp_fourth %>% filter(play_type2 == "went for it") %>% group_by(posteam) %>% summarise(attempts = n(), converted = sum(fourth_down_converted), success_rate = converted/attempts) %>% arrange(desc(success_rate))
+``` 
+
+## How far to go vs. did they go for it
+```{r}
+pbp_fourth = pbp_fourth %>% mutate(ydstogo_buckets = case_when(
+  ydstogo <= 10 ~ as.character(ydstogo),
+  ydstogo > 10 & ydstogo <= 15 ~ "11 to 15 yards to go",
+  ydstogo > 15 & ydstogo <=20 ~ "16 to 20 yards to go",
+  ydstogo > 20 ~ "More than 20 yards to go"
+))
+
+pbp_fourth %>% group_by(ydstogo_buckets) %>% summarise(total_attempts = n(), go_for_it = sum(went_for_it)) %>% arrange(desc(go_for_it))
+```
+
+
+## How far to go vs. conversion rate
+```{r}
+went_for_it = pbp_fourth %>% filter(play_type2 == "went for it")
+
+ggplot(went_for_it, aes(x = ydstogo, y = fourth_down_converted)) + 
+  geom_point()
+
+went_for_it %>% group_by(ydstogo_buckets) %>% 
+  summarise(attempts = n(), success = sum(fourth_down_converted), conversion_rate = success / attempts)%>% 
+  arrange(desc(attempts))
+```
+
+## Where you are on the field vs. attempted
+```{r}
+went_for_it %>% select(yardline_100)
+```
+
+
