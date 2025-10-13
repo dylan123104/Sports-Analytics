@@ -114,7 +114,7 @@ went_for_it %>% group_by(yardline_100) %>% summarise(count = n()) %>% ggplot(aes
 ```
 
 
-## Where you are on the field vs. conversion_rate
+### Where you are on the field vs. conversion_rate
 ```{r}
 went_for_it %>% group_by(yardline_100) %>% summarise(attempts = n(), success = sum(fourth_down_converted), conversion_rate = success/attempts) %>% filter(conversion_rate != 0) %>% ggplot(aes(x = yardline_100, y = conversion_rate)) + 
   geom_point() + 
@@ -137,11 +137,18 @@ went_for_it = went_for_it %>% mutate(score_differential_buckets = case_when(
 went_for_it %>% group_by(score_differential) %>% summarise(count = n()) %>% filter(score_differential >= -35 & score_differential <= 35) %>% ggplot(aes(x = score_differential, y = count)) + geom_col()
 ```
 
-## Time in the game vs. attempted
+## Quarter vs. Attempted
 ```{r}
-
+went_for_it %>% group_by(qtr) %>% summarize(attempts = n()) %>% ggplot(aes(x = qtr, y = attempts)) + geom_col()
 ```
 
+### Time in fourth quarter vs. Attempted
+```{r}
+went_for_it = went_for_it %>% mutate(quarter_minutes_remaining = quarter_seconds_remaining %/% 60)
+
+went_for_it %>% filter(qtr == 4) %>% group_by(quarter_minutes_remaining) %>% summarize(attempts = n()) %>% ggplot(aes(quarter_minutes_remaining, attempts)) + 
+  geom_col()
+```
 
 
 
