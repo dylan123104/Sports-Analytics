@@ -99,11 +99,49 @@ ggplot(went_for_it, aes(x = ydstogo, y = fourth_down_converted)) +
 went_for_it %>% group_by(ydstogo_buckets) %>% 
   summarise(attempts = n(), success = sum(fourth_down_converted), conversion_rate = success / attempts)%>% 
   arrange(desc(attempts))
+
+went_for_it %>% group_by(ydstogo) %>%
+  summarise(attempts = n(), success = sum(fourth_down_converted), conversion_rate = success / attempts) %>% filter(conversion_rate != 0) %>% arrange(desc(attempts)) %>% ggplot(aes(x = ydstogo, y = conversion_rate)) +
+  geom_point() + 
+  geom_smooth(method = "lm", se = F)
+
 ```
 
 ## Where you are on the field vs. attempted
 ```{r}
-went_for_it %>% select(yardline_100)
+went_for_it %>% group_by(yardline_100) %>% summarise(count = n()) %>% ggplot(aes(x = yardline_100, y = count)) + 
+  geom_col()
 ```
+
+
+## Where you are on the field vs. conversion_rate
+```{r}
+went_for_it %>% group_by(yardline_100) %>% summarise(attempts = n(), success = sum(fourth_down_converted), conversion_rate = success/attempts) %>% filter(conversion_rate != 0) %>% ggplot(aes(x = yardline_100, y = conversion_rate)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = F)
+```
+
+
+## Score Differential vs. attempted
+```{r}
+went_for_it = went_for_it %>% mutate(score_differential_buckets = case_when(
+  score_differential <= -35 ~ "down by 35 or more",
+  score_differential <= -25 ~ "down by 25 through 35",
+  score_differential <= -15 ~ "down by 15 through 25",
+  score_differential >= 15 ~ "up by 15 through 25",
+  score_differential >= 25 ~ "up by 25 or more",
+  TRUE ~ as.character(score_differential)
+))
+
+
+went_for_it %>% group_by(score_differential) %>% summarise(count = n()) %>% filter(score_differential >= -35 & score_differential <= 35) %>% ggplot(aes(x = score_differential, y = count)) + geom_col()
+```
+
+## Time in the game vs. attempted
+```{r}
+
+```
+
+
 
 
