@@ -150,5 +150,19 @@ went_for_it %>% filter(qtr == 4) %>% group_by(quarter_minutes_remaining) %>% sum
   geom_col()
 ```
 
+# **Joining offensive and defensive team metrics**
+## Loading in the two datasets generated in Getting_team_stats.Rmd file
+```{r}
+offensive_team_stats = read.csv("C:/Users/djhic/Downloads/Stats/Sports analytics research/team_offense_season.csv") 
+
+defensive_team_stats = read.csv("C:/Users/djhic/Downloads/Stats/Sports analytics research/team_defense_season.csv")
+```
+
+```{r}
+
+```
+
+
+
 
 
