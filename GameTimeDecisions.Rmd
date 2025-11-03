@@ -19,7 +19,7 @@ pbp = load_pbp(seasons = 2019:2024)
 ```
 
 ```{r}
-pbp_selected = pbp %>% select("play_id", "game_id", "home_team", "away_team",
+pbp_selected = pbp %>% select("play_id", "game_id", "home_team", "away_team", "season",
                                    "season_type", "week", "posteam", "posteam_type",
                                    "defteam", "side_of_field", "yardline_100",
                                    "game_date", "quarter_seconds_remaining",
@@ -58,17 +58,18 @@ pbp_fourth = pbp_fourth %>% mutate(went_for_it = case_when(
   TRUE ~ 0
 ))
 
-pbp_fourth %>%group_by(year) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts)
+pbp_fourth %>% group_by(season) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts)
 # Increase in 2025 so far, could be because of rule change for touchbacks. 
+
 ```
 
 ## What teams are the most aggressive in going for it
 ```{r}
 pbp_fourth %>% group_by(posteam) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts) %>% arrange(desc(rate))
 
-pbp_fourth %>% group_by(year, posteam) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts) %>% arrange(desc(rate)) %>% filter(year != 2025)
+pbp_fourth %>% group_by(season, posteam) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts) %>% arrange(desc(rate)) %>% filter(year != 2025)
 
-pbp_fourth %>% group_by(year, posteam) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts) %>% arrange(desc(rate)) %>% filter(year == 2025)
+pbp_fourth %>% group_by(season, posteam) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts) %>% arrange(desc(rate))
 ```
 
 ## What teams are the most successful in going for it
@@ -155,14 +156,43 @@ went_for_it %>% filter(qtr == 4) %>% group_by(quarter_minutes_remaining) %>% sum
 ```{r}
 offensive_team_stats = read.csv("C:/Users/djhic/Downloads/Stats/Sports analytics research/team_offense_season.csv") 
 
+offensive_team_stats = offensive_team_stats %>% select(-X)
+
 defensive_team_stats = read.csv("C:/Users/djhic/Downloads/Stats/Sports analytics research/team_defense_season.csv")
+
+defensive_team_stats = defensive_team_stats %>% select(-X)
 ```
 
+## Joining on Season and PosTeam for offensive stats and defteam for defensive stats
 ```{r}
+wf_with_off = left_join(
+  went_for_it, offensive_team_stats, by = c("season" = "season", "posteam" = "team")
+)
 
+wf_with_features = left_join(
+  wf_with_off, defensive_team_stats, by = c("season" = "season", "defteam" = "team")
+)
+
+nrow(wf_with_features) == nrow(went_for_it)
+
+missing_off <- wf_with_features %>% filter(is.na(off_epa_db)) %>%
+  distinct(season, posteam)
+
+missing_def <- wf_with_features %>% filter(is.na(def_epa_play_allowed)) %>%
+  distinct(season, defteam)
 ```
 
+# **Starting Regression Models**
+## **Basic Logistic Regression**
+### Train Test Split
+```{r}
+train_seasons = 2019:2023
+test_seasons = 2024
+
+wf_train = wf_with_features %>% filter(season %in% train_seasons) %>% count()
+wf_test = wf_with_features %>% filter(season %in% test_seasons) %>% count()
 
 
+```
 
 
