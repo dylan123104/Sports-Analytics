@@ -11,6 +11,7 @@ library(dplyr)
 library(nflreadr)
 library(nflfastR)
 library(ggplot2)
+library(caret)
 ```
 
 # **Obtaining the Data**
@@ -151,6 +152,12 @@ went_for_it %>% filter(qtr == 4) %>% group_by(quarter_minutes_remaining) %>% sum
   geom_col()
 ```
 
+### Home Field advantage ?
+```{r}
+
+```
+
+
 # **Joining offensive and defensive team metrics**
 ## Loading in the two datasets generated in Getting_team_stats.Rmd file
 ```{r}
@@ -189,8 +196,49 @@ missing_def <- wf_with_features %>% filter(is.na(def_epa_play_allowed)) %>%
 train_seasons = 2019:2023
 test_seasons = 2024
 
-wf_train = wf_with_features %>% filter(season %in% train_seasons) %>% count()
-wf_test = wf_with_features %>% filter(season %in% test_seasons) %>% count()
+wf_train = wf_with_features %>% filter(season %in% train_seasons)
+wf_test = wf_with_features %>% filter(season %in% test_seasons)
+
+```
+
+### Select predictors and handle types
+```{r}
+num_feats <- c(
+  "ydstogo","yardline_100","game_seconds_remaining","score_differential",
+  "off_epa_db","off_epa_rush","def_epa_db_allowed","def_epa_rush_allowed"
+)
+cat_feats <- c("posteam","defteam","qtr")
+
+wf_train <- wf_train %>%
+  mutate(across(all_of(cat_feats), factor)) %>%
+  select(fourth_down_converted, all_of(num_feats), all_of(cat_feats)) %>%
+  tidyr::drop_na()
+
+wf_test <- wf_test %>%
+  mutate(across(all_of(cat_feats), factor)) %>%
+  select(fourth_down_converted, all_of(num_feats), all_of(cat_feats)) %>%
+  tidyr::drop_na()
+
+```
+
+### Build glm
+```{r}
+form <- as.formula(paste("fourth_down_converted ~", paste(c(num_feats, cat_feats), collapse = " + ")))
+logit_glm <- glm(form, data = wf_train, family = binomial())
+
+summary(logit_glm)
+
+wf_test$pred_prob <- predict(logit_glm, newdata = wf_test, type = "response")
+
+wf_test$pred_class_05 <- as.integer(wf_test$pred_prob >= 0.5)
+
+auc_val <- as.numeric(pROC::auc(wf_test$fourth_down_converted, wf_test$pred_prob))
+logloss <- -mean(wf_test$fourth_down_converted * log(pmax(wf_test$pred_prob, 1e-15)) +
+                 (1 - wf_test$fourth_down_converted) * log(pmax(1 - wf_test$pred_prob, 1e-15)))
+brier   <- mean((wf_test$pred_prob - wf_test$fourth_down_converted)^2)
+acc_05  <- mean(wf_test$pred_class_05 == wf_test$fourth_down_converted)
+
+list(AUC = auc_val, LogLoss = logloss, Brier = brier, Acc_at_0_5 = acc_05)
 
 
 ```
