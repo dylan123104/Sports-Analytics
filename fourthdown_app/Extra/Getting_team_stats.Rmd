@@ -1,0 +1,136 @@
+---
+title: "Getting_team_stats"
+output: html_document
+---
+
+
+# Getting team statistics
+```{r}
+library(tidyverse)
+library(nflfastR)
+library(readr)
+```
+
+## Loading in the data set and selecting cols
+```{r}
+team_stats = nflreadr::load_team_stats(seasons = 2019:2024)
+```
+
+```{r}
+overall_cols = c("season", "team", "opponent_team")
+offensive_cols = c("completions", "attempts", "passing_yards", "passing_tds", 'passing_interceptions', 'sacks_suffered', 'sack_yards_lost', 'passing_air_yards', 'passing_yards_after_catch', 'passing_first_downs', 'passing_epa', 'passing_cpoe', 'carries', 'rushing_yards', 'rushing_tds', 'rushing_first_downs', 'rushing_epa', 'receptions', 'targets', 'receiving_yards', 'receiving_tds', 'receiving_first_downs', 'receiving_epa')
+
+defensive_cols = c('def_sacks', 'def_qb_hits', 'def_interceptions', 'def_pass_defended', 'def_tds', 'def_safeties')
+```
+
+## Feature creation
+```{r}
+filtered_team_stats = team_stats %>% select(all_of(c(overall_cols, offensive_cols, defensive_cols)))
+
+safe_div <- function(n, d) {
+  # Divide with guard against 0 or NA denominators
+  out <- n / d
+  out[is.nan(out) | is.infinite(out)] <- NA_real_
+  out
+}
+
+grouped_offensive_stats <-  filtered_team_stats %>%
+  group_by(season, team) %>%
+  summarise(
+    # Passing totals
+    completions            = sum(completions, na.rm = TRUE),
+    attempts               = sum(attempts, na.rm = TRUE),
+    passing_yards          = sum(passing_yards, na.rm = TRUE),
+    passing_tds            = sum(passing_tds, na.rm = TRUE),
+    passing_interceptions  = sum(passing_interceptions, na.rm = TRUE),
+    sacks_suffered         = sum(sacks_suffered, na.rm = TRUE),
+    sack_yards_lost        = sum(sack_yards_lost, na.rm = TRUE),
+    passing_air_yards      = sum(passing_air_yards, na.rm = TRUE),
+    passing_yac            = sum(passing_yards_after_catch, na.rm = TRUE),
+    passing_first_downs    = sum(passing_first_downs, na.rm = TRUE),
+    passing_epa            = sum(passing_epa, na.rm = TRUE),
+    # attempts weighted average for CPOE
+    passing_cpoe_wsum      = sum(passing_cpoe * attempts, na.rm = TRUE),
+    attempts_wsum          = sum(attempts, na.rm = TRUE),
+
+    # Rushing totals
+    carries                = sum(carries, na.rm = TRUE),
+    rushing_yards          = sum(rushing_yards, na.rm = TRUE),
+    rushing_tds            = sum(rushing_tds, na.rm = TRUE),
+    rushing_first_downs    = sum(rushing_first_downs, na.rm = TRUE),
+    rushing_epa            = sum(rushing_epa, na.rm = TRUE),
+
+    .groups = "drop"
+  )
+
+offense_season = grouped_stats %>%  mutate(
+    # Derived counts
+    dropbacks         = attempts + sacks_suffered,
+    plays_no_pen      = dropbacks + carries,
+    passing_cpoe      = safe_div(passing_cpoe_wsum, attempts_wsum),
+
+    # Efficiency rates
+    off_epa_db        = safe_div(passing_epa, dropbacks),
+    off_epa_rush      = safe_div(rushing_epa, carries),
+    off_epa_play      = safe_div(passing_epa + rushing_epa, plays_no_pen),
+    off_pass_rate     = safe_div(dropbacks, plays_no_pen),
+    off_ypa           = safe_div(passing_yards, attempts),
+    off_ypc           = safe_div(rushing_yards, carries),
+    off_sack_rate     = safe_div(sacks_suffered, dropbacks),
+    off_int_rate      = safe_div(passing_interceptions, attempts)
+  ) %>% select(season, team,
+    off_epa_play, off_epa_db, off_epa_rush, off_pass_rate,
+    off_ypa, off_ypc, off_sack_rate, off_int_rate, passing_cpoe)
+```
+
+``` {r}
+grouped_def_stats = filtered_team_stats %>% 
+  group_by(season, defense_team = opponent_team) %>%
+  summarise(
+    # Opponent offense totals against this defense
+    opp_attempts_vs_team              = sum(attempts, na.rm = TRUE),
+    opp_sacks_suffered_vs_team        = sum(sacks_suffered, na.rm = TRUE),
+    opp_passing_epa_vs_team           = sum(passing_epa, na.rm = TRUE),
+    opp_passing_yards_vs_team         = sum(passing_yards, na.rm = TRUE),
+    opp_passing_interceptions_vs_team = sum(passing_interceptions, na.rm = TRUE),
+
+    opp_carries_vs_team               = sum(carries, na.rm = TRUE),
+    opp_rushing_epa_vs_team           = sum(rushing_epa, na.rm = TRUE),
+    opp_rushing_yards_vs_team         = sum(rushing_yards, na.rm = TRUE),
+
+    # Your own defense counting helpful for rates
+    def_interceptions                 = sum(def_interceptions, na.rm = TRUE),
+    def_sacks                         = sum(def_sacks, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+defense_season = grouped_def_stats %>% mutate(
+  def_dropbacks_allowed      = opp_attempts_vs_team + opp_sacks_suffered_vs_team,
+    def_plays_no_pen_allowed   = def_dropbacks_allowed + opp_carries_vs_team,
+
+    def_epa_db_allowed         = safe_div(opp_passing_epa_vs_team, def_dropbacks_allowed),
+    def_epa_rush_allowed       = safe_div(opp_rushing_epa_vs_team, opp_carries_vs_team),
+    def_epa_play_allowed       = safe_div(opp_passing_epa_vs_team + opp_rushing_epa_vs_team,
+                                          def_plays_no_pen_allowed),
+
+    def_ypa_allowed            = safe_div(opp_passing_yards_vs_team, opp_attempts_vs_team),
+    def_ypc_allowed            = safe_div(opp_rushing_yards_vs_team, opp_carries_vs_team),
+
+    def_int_rate_forced        = safe_div(def_interceptions, opp_attempts_vs_team),
+    def_sack_rate              = safe_div(def_sacks, def_dropbacks_allowed)
+) %>%  rename(team = defense_team) %>%
+  select(
+    season, team,
+    def_epa_play_allowed, def_epa_db_allowed, def_epa_rush_allowed,
+    def_ypa_allowed, def_ypc_allowed, def_sack_rate, def_int_rate_forced
+  )
+
+```
+
+
+```{r}
+write.csv(offense_season, "C:/Users/djhic/Downloads/Stats/Sports analytics research/team_offense_season.csv")
+
+write.csv(defense_season, "C:/Users/djhic/Downloads/Stats/Sports analytics research/team_defense_season.csv")
+```
+

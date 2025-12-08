@@ -1,0 +1,73 @@
+{
+  "feature_names": [
+    "num__ydstogo",
+    "num__yardline_100",
+    "num__game_seconds_remaining",
+    "num__score_differential",
+    "num__posteam_timeouts_remaining",
+    "num__defteam_timeouts_remaining",
+    "num__off_epa_db",
+    "num__off_epa_rush",
+    "num__def_epa_db_allowed",
+    "num__def_epa_rush_allowed",
+    "cat__qtr_1",
+    "cat__qtr_2",
+    "cat__qtr_3",
+    "cat__qtr_4",
+    "cat__qtr_5"
+  ],
+  "coef": [
+    -0.15090346196446242,
+    0.006832018615065993,
+    7.482008563813432e-06,
+    0.0027688798733207873,
+    0.03499984828576819,
+    0.11334099018390671,
+    0.7191360371171961,
+    0.597765134368873,
+    0.8901474921394525,
+    0.4157914664796285,
+    -0.07984133274576864,
+    -0.1048573150504593,
+    0.16338564059555702,
+    -0.04258498241372177,
+    0.08220864542360305
+  ],
+  "intercept": 0.02867504437514645,
+  "numeric_features": [
+    "ydstogo",
+    "yardline_100",
+    "game_seconds_remaining",
+    "score_differential",
+    "posteam_timeouts_remaining",
+    "defteam_timeouts_remaining",
+    "off_epa_db",
+    "off_epa_rush",
+    "def_epa_db_allowed",
+    "def_epa_rush_allowed"
+  ],
+  "categorical_features": [
+    "qtr"
+  ],
+  "numeric_medians": {
+    "ydstogo": 2.0,
+    "yardline_100": 38.0,
+    "game_seconds_remaining": 922.0,
+    "score_differential": -6.0,
+    "posteam_timeouts_remaining": 3.0,
+    "defteam_timeouts_remaining": 3.0,
+    "off_epa_db": 0.0208547437449314,
+    "off_epa_rush": -0.0471301246229234,
+    "def_epa_db_allowed": 0.0237407001331197,
+    "def_epa_rush_allowed": -0.0485063526473638
+  },
+  "categorical_levels": {
+    "qtr": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  }
+}

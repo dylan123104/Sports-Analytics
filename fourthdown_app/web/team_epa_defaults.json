@@ -1,0 +1,194 @@
+{
+  "ARI": {
+    "off_epa_db": 0.023051847314606,
+    "off_epa_rush": -0.0880721038064167,
+    "def_epa_db_allowed": 0.0522492115603531,
+    "def_epa_rush_allowed": -0.062874770724457
+  },
+  "ATL": {
+    "off_epa_db": -0.012722983021604,
+    "off_epa_rush": -0.0042447512757743,
+    "def_epa_db_allowed": -0.0497646651129501,
+    "def_epa_rush_allowed": 0.0398669071985054
+  },
+  "BAL": {
+    "off_epa_db": -0.0370992850054794,
+    "off_epa_rush": 0.0370186383064949,
+    "def_epa_db_allowed": 0.0569915888581511,
+    "def_epa_rush_allowed": -0.0513496803161381
+  },
+  "BUF": {
+    "off_epa_db": 0.168771871767373,
+    "off_epa_rush": 0.08833347308294,
+    "def_epa_db_allowed": -0.0570778909486009,
+    "def_epa_rush_allowed": 0.104193624384953
+  },
+  "CAR": {
+    "off_epa_db": -0.0570738158106531,
+    "off_epa_rush": -0.0114411198336564,
+    "def_epa_db_allowed": 0.109227677663774,
+    "def_epa_rush_allowed": 0.011758755941162
+  },
+  "CHI": {
+    "off_epa_db": 0.0537843184540729,
+    "off_epa_rush": 0.0531826797223829,
+    "def_epa_db_allowed": 0.0061802290704811,
+    "def_epa_rush_allowed": -0.0139726130831033
+  },
+  "CIN": {
+    "off_epa_db": -0.0328972356395537,
+    "off_epa_rush": 0.013802834818224,
+    "def_epa_db_allowed": 0.23103643165612,
+    "def_epa_rush_allowed": 0.0882482134484796
+  },
+  "CLE": {
+    "off_epa_db": -0.266738444236123,
+    "off_epa_rush": -0.070781836566824,
+    "def_epa_db_allowed": -0.0852549127859588,
+    "def_epa_rush_allowed": -0.150377548874057
+  },
+  "DAL": {
+    "off_epa_db": 0.200595581297767,
+    "off_epa_rush": -0.034583373454931,
+    "def_epa_db_allowed": 0.166594946196402,
+    "def_epa_rush_allowed": 0.0766768267440294
+  },
+  "DEN": {
+    "off_epa_db": 0.0623381072353323,
+    "off_epa_rush": -0.00720565227866,
+    "def_epa_db_allowed": -0.106271261471979,
+    "def_epa_rush_allowed": -0.0891092590705011
+  },
+  "DET": {
+    "off_epa_db": 0.161416798482829,
+    "off_epa_rush": -0.0080674341328744,
+    "def_epa_db_allowed": 0.0154543322049818,
+    "def_epa_rush_allowed": -0.098174111638514
+  },
+  "GB": {
+    "off_epa_db": 0.276803694882655,
+    "off_epa_rush": -0.023800289485646,
+    "def_epa_db_allowed": 0.031902007049046,
+    "def_epa_rush_allowed": -0.0743999234310933
+  },
+  "HOU": {
+    "off_epa_db": 0.0426489759035283,
+    "off_epa_rush": -0.0565878993051006,
+    "def_epa_db_allowed": -0.152911668837881,
+    "def_epa_rush_allowed": -0.0640846395923303
+  },
+  "IND": {
+    "off_epa_db": 0.155225565919111,
+    "off_epa_rush": 0.150109803140058,
+    "def_epa_db_allowed": -0.009553309803787,
+    "def_epa_rush_allowed": -0.0565813996939067
+  },
+  "JAX": {
+    "off_epa_db": -0.0528430248146827,
+    "off_epa_rush": 0.02276486527643,
+    "def_epa_db_allowed": -0.0753014758784488,
+    "def_epa_rush_allowed": -0.0391571642686305
+  },
+  "KC": {
+    "off_epa_db": 0.201167408937181,
+    "off_epa_rush": 0.0455782527145539,
+    "def_epa_db_allowed": 0.01346437598905,
+    "def_epa_rush_allowed": -0.0138637823612876
+  },
+  "LA": {
+    "off_epa_db": 0.209131036242904,
+    "off_epa_rush": -0.0454955990421631,
+    "def_epa_db_allowed": -0.0695094263263469,
+    "def_epa_rush_allowed": -0.0760785913909112
+  },
+  "LAC": {
+    "off_epa_db": 0.0005163900294956,
+    "off_epa_rush": 0.0067683733737185,
+    "def_epa_db_allowed": -0.0838146513821865,
+    "def_epa_rush_allowed": 0.0163761178060269
+  },
+  "LV": {
+    "off_epa_db": -0.167990256990008,
+    "off_epa_rush": -0.239242269444172,
+    "def_epa_db_allowed": 0.0917976542289552,
+    "def_epa_rush_allowed": -0.0973465704937101
+  },
+  "MIA": {
+    "off_epa_db": 0.0034200427405764,
+    "off_epa_rush": -0.0170750275094789,
+    "def_epa_db_allowed": 0.152719387813931,
+    "def_epa_rush_allowed": 0.0016241884433336
+  },
+  "MIN": {
+    "off_epa_db": -0.183223947357737,
+    "off_epa_rush": -0.061324202950952,
+    "def_epa_db_allowed": 0.0304608569573448,
+    "def_epa_rush_allowed": -0.0310375963714013
+  },
+  "NE": {
+    "off_epa_db": 0.267239174678168,
+    "off_epa_rush": -0.0960573065329006,
+    "def_epa_db_allowed": -0.0193575886455703,
+    "def_epa_rush_allowed": -0.0482574578006628
+  },
+  "NO": {
+    "off_epa_db": -0.12857617396053,
+    "off_epa_rush": -0.124084771679665,
+    "def_epa_db_allowed": 0.0536895060558975,
+    "def_epa_rush_allowed": -0.0842724107068128
+  },
+  "NYG": {
+    "off_epa_db": 0.0277046655204303,
+    "off_epa_rush": 0.007487946168681,
+    "def_epa_db_allowed": 0.0661465746155886,
+    "def_epa_rush_allowed": 0.204978903785968
+  },
+  "NYJ": {
+    "off_epa_db": -0.0770011210883815,
+    "off_epa_rush": -0.0574861255826554,
+    "def_epa_db_allowed": 0.151184635859569,
+    "def_epa_rush_allowed": 0.0193813649422669
+  },
+  "PHI": {
+    "off_epa_db": 0.0957168228304129,
+    "off_epa_rush": -0.0509742073172808,
+    "def_epa_db_allowed": -0.0598979495667371,
+    "def_epa_rush_allowed": -0.0260696590208373
+  },
+  "PIT": {
+    "off_epa_db": 0.0371079808622022,
+    "off_epa_rush": -0.0026324452315235,
+    "def_epa_db_allowed": 0.0201751612838129,
+    "def_epa_rush_allowed": 0.013611049275241
+  },
+  "SEA": {
+    "off_epa_db": 0.21662250906192,
+    "off_epa_rush": -0.101583298324354,
+    "def_epa_db_allowed": -0.0039816330057701,
+    "def_epa_rush_allowed": -0.138556749351071
+  },
+  "SF": {
+    "off_epa_db": 0.147883270745259,
+    "off_epa_rush": -0.0680918085417953,
+    "def_epa_db_allowed": 0.115406775586661,
+    "def_epa_rush_allowed": -0.0452886026829544
+  },
+  "TB": {
+    "off_epa_db": -0.0415735105156797,
+    "off_epa_rush": 0.0208762615853634,
+    "def_epa_db_allowed": 0.0381247564475753,
+    "def_epa_rush_allowed": -0.09046361446893
+  },
+  "TEN": {
+    "off_epa_db": -0.227545470860518,
+    "off_epa_rush": -0.124270804015488,
+    "def_epa_db_allowed": 0.159734113602778,
+    "def_epa_rush_allowed": -0.0193870004431062
+  },
+  "WAS": {
+    "off_epa_db": 0.0288724332515068,
+    "off_epa_rush": 0.0203238535717509,
+    "def_epa_db_allowed": 0.257356957797368,
+    "def_epa_rush_allowed": 0.0028481196471408
+  }
+}

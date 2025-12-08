@@ -1,0 +1,283 @@
+---
+title: "GameTimeDecisions"
+output: html_document
+---
+
+# **Loading in Packages**
+```{r}
+library(tidyverse)
+library(xgboost)
+library(dplyr)
+library(nflreadr)
+library(nflfastR)
+library(ggplot2)
+library(caret)
+library(pROC)
+```
+
+# **Obtaining the Data**
+```{r}
+pbp = load_pbp(seasons = 2019:2024)
+```
+
+```{r}
+pbp_selected = pbp %>% select("play_id", "game_id", "home_team", "away_team", "season",
+                                   "season_type", "week", "posteam", "posteam_type",
+                                   "defteam", "side_of_field", "yardline_100",
+                                   "game_date", "quarter_seconds_remaining",
+                                   "half_seconds_remaining", "game_seconds_remaining",
+                              "qtr", "down", "time", "goal_to_go", "yrdln", "ydstogo",
+                              "ydsnet", "play_type", "yards_gained", "score_differential", "fourth_down_converted", "fourth_down_failed", "timeout_team", "penalty", "penalty_team", "penalty_type", "weather", "wind", "stadium_id"
+                              )
+```
+
+```{r}
+pbp_fourth = pbp_selected %>% filter(down == 4)
+pbp_fourth$game_date = pbp_fourth$game_date %>% as.Date()
+pbp_fourth$year = format(pbp_fourth$game_date, "%Y")
+```
+
+
+# **Exploratory Data Analysis**
+```{r}
+pbp_fourth =pbp_fourth %>% mutate(play_type2 = case_when(
+  play_type == "punt" ~ "punt",
+  play_type == "no_play" ~ "no_play",
+  play_type == "field_goal" ~ "field_goal",
+  play_type == "NA" ~ "NA",
+  play_type == "qb_kneel" ~ "qb_kneel",
+  play_type == "run" ~ "went for it",
+  play_type == "pass" ~ "went for it"
+))
+
+play_type_fourth = pbp_fourth %>% group_by(play_type2) %>% count() %>% arrange(desc(n))
+
+play_type_fourth %>% ggplot(aes(x = reorder(play_type2, n, desc), y = n)) +
+  geom_col()
+
+pbp_fourth = pbp_fourth %>% mutate(went_for_it = case_when(
+  play_type2 == "went for it" ~ 1,
+  TRUE ~ 0
+))
+
+pbp_fourth %>% group_by(season) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts)
+# Increase in 2025 so far, could be because of rule change for touchbacks. 
+
+```
+
+## What teams are the most aggressive in going for it
+```{r}
+pbp_fourth %>% group_by(posteam) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts) %>% arrange(desc(rate))
+
+pbp_fourth %>% group_by(season, posteam) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts) %>% arrange(desc(rate))
+
+pbp_fourth %>% group_by(season, posteam) %>% summarise(attempts = n(), went_total = sum(went_for_it), rate = went_total/attempts) %>% arrange(desc(rate))
+```
+
+## What teams are the most successful in going for it
+```{r}
+pbp_fourth %>% filter(play_type2 == "went for it") %>% group_by(posteam) %>% summarise(attempts = n(), converted = sum(fourth_down_converted), success_rate = converted/attempts) %>% arrange(desc(success_rate))
+``` 
+
+## How far to go vs. did they go for it
+```{r}
+pbp_fourth = pbp_fourth %>% mutate(ydstogo_buckets = case_when(
+  ydstogo <= 10 ~ as.character(ydstogo),
+  ydstogo > 10 & ydstogo <= 15 ~ "11 to 15 yards to go",
+  ydstogo > 15 & ydstogo <=20 ~ "16 to 20 yards to go",
+  ydstogo > 20 ~ "More than 20 yards to go"
+))
+
+pbp_fourth %>% group_by(ydstogo_buckets) %>% summarise(total_attempts = n(), go_for_it = sum(went_for_it)) %>% arrange(desc(go_for_it))
+```
+
+
+## How far to go vs. conversion rate
+```{r}
+went_for_it = pbp_fourth %>% filter(play_type2 == "went for it")
+
+ggplot(went_for_it, aes(x = ydstogo, y = fourth_down_converted)) + 
+  geom_point()
+
+went_for_it %>% group_by(ydstogo_buckets) %>% 
+  summarise(attempts = n(), success = sum(fourth_down_converted), conversion_rate = success / attempts)%>% 
+  arrange(desc(attempts))
+
+went_for_it %>% group_by(ydstogo) %>%
+  summarise(attempts = n(), success = sum(fourth_down_converted), conversion_rate = success / attempts) %>% filter(conversion_rate != 0) %>% arrange(desc(attempts)) %>% ggplot(aes(x = ydstogo, y = conversion_rate)) +
+  geom_point() + 
+  geom_smooth(method = "lm", se = F)
+
+```
+
+## Where you are on the field vs. attempted
+```{r}
+went_for_it %>% group_by(yardline_100) %>% summarise(count = n()) %>% ggplot(aes(x = yardline_100, y = count)) + 
+  geom_col()
+```
+
+
+### Where you are on the field vs. conversion_rate
+```{r}
+went_for_it %>% group_by(yardline_100) %>% summarise(attempts = n(), success = sum(fourth_down_converted), conversion_rate = success/attempts) %>% filter(conversion_rate != 0) %>% ggplot(aes(x = yardline_100, y = conversion_rate)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = F)
+```
+
+
+## Score Differential vs. attempted
+```{r}
+went_for_it = went_for_it %>% mutate(score_differential_buckets = case_when(
+  score_differential <= -35 ~ "down by 35 or more",
+  score_differential <= -25 ~ "down by 25 through 35",
+  score_differential <= -15 ~ "down by 15 through 25",
+  score_differential >= 15 ~ "up by 15 through 25",
+  score_differential >= 25 ~ "up by 25 or more",
+  TRUE ~ as.character(score_differential)
+))
+
+
+went_for_it %>% group_by(score_differential) %>% summarise(count = n()) %>% filter(score_differential >= -35 & score_differential <= 35) %>% ggplot(aes(x = score_differential, y = count)) + geom_col()
+```
+
+## Quarter vs. Attempted
+```{r}
+went_for_it %>% group_by(qtr) %>% summarize(attempts = n()) %>% ggplot(aes(x = qtr, y = attempts)) + geom_col()
+```
+
+### Time in fourth quarter vs. Attempted
+```{r}
+went_for_it = went_for_it %>% mutate(quarter_minutes_remaining = quarter_seconds_remaining %/% 60)
+
+went_for_it %>% filter(qtr == 4) %>% group_by(quarter_minutes_remaining) %>% summarize(attempts = n()) %>% ggplot(aes(quarter_minutes_remaining, attempts)) + 
+  geom_col()
+```
+
+### Home Field advantage ?
+```{r}
+
+```
+
+
+# **Joining offensive and defensive team metrics**
+## Loading in the two datasets generated in Getting_team_stats.Rmd file
+```{r}
+offensive_team_stats = read.csv("C:/Users/djhic/Downloads/Stats/Sports analytics research/team_offense_season.csv") 
+
+offensive_team_stats = offensive_team_stats %>% select(-X)
+
+defensive_team_stats = read.csv("C:/Users/djhic/Downloads/Stats/Sports analytics research/team_defense_season.csv")
+
+defensive_team_stats = defensive_team_stats %>% select(-X)
+```
+
+## Joining on Season and PosTeam for offensive stats and defteam for defensive stats
+```{r}
+wf_with_off = left_join(
+  went_for_it, offensive_team_stats, by = c("season" = "season", "posteam" = "team")
+)
+
+wf_with_features = left_join(
+  wf_with_off, defensive_team_stats, by = c("season" = "season", "defteam" = "team")
+)
+
+nrow(wf_with_features) == nrow(went_for_it)
+
+missing_off <- wf_with_features %>% filter(is.na(off_epa_db)) %>%
+  distinct(season, posteam)
+
+missing_def <- wf_with_features %>% filter(is.na(def_epa_play_allowed)) %>%
+  distinct(season, defteam)
+
+write.csv(wf_with_features, "C:/Users/djhic/Downloads/Stats/Sports analytics research/wf_with_features.csv")
+```
+
+# **Starting Regression Models**
+## **Basic Logistic Regression**
+### Train Test Split
+```{r}
+train_seasons = 2019:2023
+test_seasons = 2024
+
+wf_train_split = wf_with_features %>% filter(season %in% train_seasons)
+wf_test_split = wf_with_features %>% filter(season %in% test_seasons)
+
+```
+
+### Select predictors and handle types
+```{r}
+num_feats <- c(
+  "ydstogo","yardline_100","game_seconds_remaining","score_differential",
+  "off_epa_db","off_epa_rush","def_epa_db_allowed","def_epa_rush_allowed"
+)
+cat_feats <- c("posteam","defteam","qtr")
+
+wf_train <- wf_train_split %>%
+  mutate(across(all_of(cat_feats), factor)) %>%
+  select(fourth_down_converted, all_of(num_feats), all_of(cat_feats)) %>%
+  tidyr::drop_na()
+
+wf_test <- wf_test_split %>%
+  mutate(across(all_of(cat_feats), factor)) %>%
+  select(fourth_down_converted, all_of(num_feats), all_of(cat_feats)) %>%
+  tidyr::drop_na()
+
+```
+
+### Build glm
+```{r}
+form <- as.formula(paste("fourth_down_converted ~", paste(c(num_feats, cat_feats), collapse = " + ")))
+logit_glm <- glm(form, data = wf_train, family = binomial())
+
+summary(logit_glm)
+
+wf_test$pred_prob <- predict(logit_glm, newdata = wf_test, type = "response")
+
+wf_test$pred_class_05 <- as.integer(wf_test$pred_prob >= 0.5)
+
+# ROC curve
+roc_obj = roc(response = wf_test$fourth_down_converted, predictor = wf_test$pred_prob, quiet = TRUE)
+auc_val = as.numeric(auc(roc_obj))
+
+plot(roc_obj, print.auc = TRUE, legacy.axes = TRUE, main = "ROC curve, test set")
+abline(a = 0, b = 1, lty = 2)
+
+# Confusion Matrix
+confusion_matrix = table(Predicted = wf_test$pred_class_05, Actual = wf_test$fourth_down_converted)
+print(confusion_matrix)
+
+accuracy = sum(diag(confusion_matrix)) / sum(confusion_matrix)
+precision = confusion_matrix[2,2] / (confusion_matrix[2, 2] + confusion_matrix[1, 2])
+recall = confusion_matrix[2, 2] / (confusion_matrix[2, 2] + confusion_matrix[2, 1])
+specificity = confusion_matrix[1, 1] / (confusion_matrix[1, 1] + confusion_matrix[1, 2])
+
+print(paste("Accuracy:", accuracy))
+print(paste("Precision:", precision))
+print(paste("Recall:", recall))
+print(paste("Specificity:", specificity))
+```
+
+### Build a basic xgboost model
+```{r}
+num_feats <- c(
+  "ydstogo","yardline_100","game_seconds_remaining","score_differential",
+  "off_epa_db","off_epa_rush","def_epa_db_allowed","def_epa_rush_allowed"
+)
+cat_feats <- c("posteam","defteam","qtr")
+
+wf_train <- wf_train_split %>%
+  mutate(across(all_of(cat_feats), factor)) %>%
+  select(fourth_down_converted, all_of(num_feats), all_of(cat_feats)) %>%
+  tidyr::drop_na()
+
+wf_test <- wf_test_split %>%
+  mutate(across(all_of(cat_feats), factor)) %>%
+  select(fourth_down_converted, all_of(num_feats), all_of(cat_feats)) %>%
+  tidyr::drop_na()
+```
+
+```{r}
+
+```
+
+

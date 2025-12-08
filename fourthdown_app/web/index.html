@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4th Down Conversion Probability</title>
+  <style>
+    :root {
+      --ink: #0f172a;
+      --panel: #0b1021;
+      --accent: #4ade80;
+      --muted: #94a3b8;
+      --border: #1e293b;
+      --bg: radial-gradient(circle at 20% 20%, #0f172a 0%, #0b1021 35%, #050814 80%);
+      --input: #0f172a;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Bahnschrift", "Helvetica Neue", Arial, sans-serif;
+      color: #e2e8f0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .shell {
+      width: min(1100px, 100%);
+      background: linear-gradient(145deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: 0.5px;
+    }
+    #bundle-status {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px 16px;
+      margin-top: 12px;
+    }
+    fieldset {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 12px 4px;
+      min-width: 0;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    legend {
+      padding: 0 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 4px;
+    }
+    input, select {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--input);
+      color: #e2e8f0;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.15s ease, box-shadow 0.15s ease;
+    }
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2);
+    }
+    .inline {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .actions {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    button {
+      padding: 11px 16px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: #0a0f1c;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.2s ease;
+      box-shadow: 0 10px 25px rgba(74, 222, 128, 0.3);
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    .result {
+      grid-column: 1 / -1;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .prob {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .recommend {
+      font-size: 16px;
+      color: var(--muted);
+    }
+    .badge {
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+    }
+    .go { background: rgba(74, 222, 128, 0.15); color: var(--accent); }
+    .kick { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+    .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+    .error { color: #fca5a5; margin-top: 6px; font-size: 13px; }
+    .subtext { font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>4th Down Conversion Probability</h1>
+      <div id="bundle-status">Loading model…</div>
+    </header>
+
+    <form id="play-form">
+      <fieldset>
+        <legend>Game State</legend>
+        <label for="qtr">Quarter (1-5)</label>
+        <select id="qtr" name="qtr">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">OT</option>
+        </select>
+        <label>Clock</label>
+        <div class="inline">
+          <input type="number" id="minutes" name="minutes" min="0" max="15" step="1" value="3" placeholder="Minutes">
+          <input type="number" id="seconds" name="seconds" min="0" max="59" step="1" value="0" placeholder="Seconds">
+          <input type="number" id="game_seconds_remaining" name="game_seconds_remaining" readonly>
+        </div>
+        <div class="hint">Game seconds remaining follows: minutes*60 + seconds + (4 − qtr)*900</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Field & Score</legend>
+        <label for="ydstogo">Yards to Go</label>
+        <input type="number" id="ydstogo" name="ydstogo" min="0" step="0.1" value="2">
+        <label for="yardline_100">Yardline (own 0 → opp 100)</label>
+        <input type="number" id="yardline_100" name="yardline_100" min="0" max="100" step="0.1" value="50">
+        <label for="score_differential">Score Differential (offense - defense)</label>
+        <input type="number" id="score_differential" name="score_differential" step="1" value="-2">
+      </fieldset>
+
+      <fieldset>
+        <legend>Timeouts</legend>
+        <label for="posteam_timeouts_remaining">Offense Timeouts</label>
+        <input type="number" id="posteam_timeouts_remaining" name="posteam_timeouts_remaining" min="0" max="3" step="1" value="2">
+        <label for="defteam_timeouts_remaining">Defense Timeouts</label>
+        <input type="number" id="defteam_timeouts_remaining" name="defteam_timeouts_remaining" min="0" max="3" step="1" value="2">
+      </fieldset>
+
+      <fieldset>
+        <legend>Teams</legend>
+        <label for="posteam">Offense (team code)</label>
+        <input id="posteam" name="posteam" list="team-options" value="KAN" placeholder="e.g., BUF">
+        <label for="defteam">Defense (team code)</label>
+        <input id="defteam" name="defteam" list="team-options" value="BUF" placeholder="e.g., KAN">
+        <datalist id="team-options"></datalist>
+        <div class="hint">Type any valid team code; unknown codes are handled safely.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Strength Inputs</legend>
+        <label for="off_epa_db">Offense EPA/DB</label>
+        <input type="number" id="off_epa_db" name="off_epa_db" step="any" inputmode="decimal" value="0.0">
+        <label for="off_epa_rush">Offense EPA/Rush</label>
+        <input type="number" id="off_epa_rush" name="off_epa_rush" step="any" inputmode="decimal" value="0.0">
+        <label for="def_epa_db_allowed">Defense EPA/DB Allowed</label>
+        <input type="number" id="def_epa_db_allowed" name="def_epa_db_allowed" step="any" inputmode="decimal" value="0.0">
+        <label for="def_epa_rush_allowed">Defense EPA/Rush Allowed</label>
+        <input type="number" id="def_epa_rush_allowed" name="def_epa_rush_allowed" step="any" inputmode="decimal" value="0.0">
+      </fieldset>
+
+      <fieldset>
+        <legend>Decision Threshold</legend>
+        <label for="threshold">Go-For-It threshold (0-1)</label>
+        <input type="number" id="threshold" name="threshold" step="any" min="0" max="1" inputmode="decimal" value="0.5">
+        <div class="hint">Recommendation flips to “GO” when p ≥ threshold.</div>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit">Compute Probability</button>
+        <div class="subtext" id="note"></div>
+      </div>
+
+      <div class="result">
+        <div>
+          <div class="prob" id="prob-display">p = —</div>
+          <div class="recommend" id="recommend-text">Enter inputs and submit.</div>
+        </div>
+        <div class="badge" id="recommend-badge">—</div>
+      </div>
+      <div class="error" id="error"></div>
+    </form>
+  </div>
+
+  <script>
+    let bundle = null;
+    let epaDefaults = null;
+
+    const form = document.getElementById("play-form");
+    const probDisplay = document.getElementById("prob-display");
+    const recommendText = document.getElementById("recommend-text");
+    const recommendBadge = document.getElementById("recommend-badge");
+    const errorBox = document.getElementById("error");
+    const bundleStatus = document.getElementById("bundle-status");
+    const teamOptions = document.getElementById("team-options");
+    const note = document.getElementById("note");
+
+    const TEAM_ALIASES = { KAN: "KC", KCC: "KC" };
+
+    function normalizeTeam(team) {
+      if (!team) return "";
+      const t = String(team).toUpperCase();
+      return TEAM_ALIASES[t] || t;
+    }
+
+    async function loadBundle() {
+      try {
+        const [bundleRes, epaRes] = await Promise.all([
+          fetch("model_bundle.json"),
+          fetch("team_epa_defaults.json").catch(() => null),
+        ]);
+
+        if (!bundleRes.ok) throw new Error("Failed to load model bundle");
+        bundle = await bundleRes.json();
+
+        if (epaRes && epaRes.ok) {
+          epaDefaults = await epaRes.json();
+        }
+
+        bundleStatus.textContent = "Model ready";
+        populateTeams(bundle.categorical_levels?.posteam || [], epaDefaults);
+        const teamCount = (bundle.categorical_levels?.posteam || []).length;
+        note.textContent = `Features: ${bundle.feature_names.length}, categories: posteam ${teamCount}${epaDefaults ? ", EPA defaults loaded" : ""}`;
+        updateGameSeconds();
+        applyOffenseDefaults(document.getElementById("posteam").value);
+        applyDefenseDefaults(document.getElementById("defteam").value);
+      } catch (err) {
+        bundleStatus.textContent = "Model failed to load";
+        showError(err.message);
+      }
+    }
+
+    function populateTeams(teams, epaMap) {
+      teamOptions.innerHTML = "";
+      const union = new Set(teams);
+      if (epaMap) {
+        Object.keys(epaMap).forEach((k) => union.add(k));
+      }
+      Array.from(union)
+        .sort()
+        .forEach((t) => {
+          const option = document.createElement("option");
+          option.value = t;
+          teamOptions.appendChild(option);
+        });
+    }
+
+    function updateGameSeconds() {
+      const qtr = Number(document.getElementById("qtr").value || 0);
+      const minutes = Number(document.getElementById("minutes").value || 0);
+      const seconds = Number(document.getElementById("seconds").value || 0);
+      const gameSeconds = minutes * 60 + seconds + (4 - qtr) * 900;
+      document.getElementById("game_seconds_remaining").value = Math.max(gameSeconds, 0);
+    }
+
+    function showError(msg) {
+      errorBox.textContent = msg || "";
+    }
+
+    function applyOffenseDefaults(team) {
+      if (!epaDefaults) return;
+      const rec = epaDefaults[normalizeTeam(team)];
+      if (!rec) return;
+      const offDb = document.getElementById("off_epa_db");
+      const offRush = document.getElementById("off_epa_rush");
+      if (rec.off_epa_db !== undefined) offDb.value = rec.off_epa_db;
+      if (rec.off_epa_rush !== undefined) offRush.value = rec.off_epa_rush;
+    }
+
+    function applyDefenseDefaults(team) {
+      if (!epaDefaults) return;
+      const rec = epaDefaults[normalizeTeam(team)];
+      if (!rec) return;
+      const defDb = document.getElementById("def_epa_db_allowed");
+      const defRush = document.getElementById("def_epa_rush_allowed");
+      if (rec.def_epa_db_allowed !== undefined) defDb.value = rec.def_epa_db_allowed;
+      if (rec.def_epa_rush_allowed !== undefined) defRush.value = rec.def_epa_rush_allowed;
+    }
+
+    function logistic(z) {
+      if (z > 50) return 1;
+      if (z < -50) return 0;
+      return 1 / (1 + Math.exp(-z));
+    }
+
+    function buildVector(values) {
+      const vec = [];
+      const medians = bundle.numeric_medians || {};
+      const categories = bundle.categorical_levels || {};
+
+      const numerics = {
+        ydstogo: parseFloat(values.ydstogo),
+        yardline_100: parseFloat(values.yardline_100),
+        game_seconds_remaining: parseFloat(values.game_seconds_remaining),
+        score_differential: parseFloat(values.score_differential),
+        posteam_timeouts_remaining: parseFloat(values.posteam_timeouts_remaining),
+        defteam_timeouts_remaining: parseFloat(values.defteam_timeouts_remaining),
+        off_epa_db: parseFloat(values.off_epa_db),
+        off_epa_rush: parseFloat(values.off_epa_rush),
+        def_epa_db_allowed: parseFloat(values.def_epa_db_allowed),
+        def_epa_rush_allowed: parseFloat(values.def_epa_rush_allowed),
+      };
+
+      const categoricals = {
+        posteam: normalizeTeam(values.posteam),
+        defteam: normalizeTeam(values.defteam),
+        qtr: String(values.qtr),
+      };
+
+      for (const name of bundle.feature_names) {
+        if (name.startsWith("num__")) {
+          const key = name.replace("num__", "");
+          const raw = numerics[key];
+          const val = Number.isFinite(raw) ? raw : medians[key];
+          vec.push(val);
+        } else if (name.startsWith("cat__")) {
+          const [feature, level] = name.replace("cat__", "").split("_");
+          const inputVal = categoricals[feature] ?? "";
+          const matchLevel = String(level);
+          vec.push(inputVal === matchLevel ? 1 : 0);
+        }
+      }
+      return vec;
+    }
+
+    function dot(a, b) {
+      let sum = 0;
+      for (let i = 0; i < a.length; i += 1) {
+        sum += a[i] * b[i];
+      }
+      return sum;
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      showError("");
+      if (!bundle) {
+        showError("Model bundle has not loaded yet.");
+        return;
+      }
+
+      const formData = new FormData(form);
+      const values = Object.fromEntries(formData.entries());
+      values.game_seconds_remaining =
+        Number(values.minutes || 0) * 60 +
+        Number(values.seconds || 0) +
+        (4 - Number(values.qtr || 0)) * 900;
+
+      const x = buildVector(values);
+      if (x.length !== bundle.coef.length) {
+        showError("Feature length mismatch.");
+        return;
+      }
+
+      const z = bundle.intercept + dot(x, bundle.coef);
+      const p = logistic(z);
+
+      const threshold = Math.min(
+        1,
+        Math.max(0, parseFloat(values.threshold ?? "0.5"))
+      );
+
+      const go = p >= threshold;
+      probDisplay.textContent = `p = ${(p * 100).toFixed(1)}%`;
+      recommendText.textContent = `Threshold ${threshold.toFixed(
+        2
+      )} → recommendation: ${go ? "GO" : "KICK"}`;
+      recommendBadge.textContent = go ? "GO" : "KICK";
+      recommendBadge.className = `badge ${go ? "go" : "kick"}`;
+    });
+
+    ["qtr", "minutes", "seconds"].forEach((id) => {
+      document.getElementById(id).addEventListener("input", updateGameSeconds);
+    });
+
+    document.getElementById("posteam").addEventListener("change", (e) => {
+      applyOffenseDefaults(e.target.value);
+    });
+    document.getElementById("defteam").addEventListener("change", (e) => {
+      applyDefenseDefaults(e.target.value);
+    });
+
+    loadBundle();
+  </script>
+</body>
+</html>
